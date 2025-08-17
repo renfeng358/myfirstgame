@@ -102,3 +102,8 @@ Temp/
 obj/
 *.csproj
 *.sln
+Library/
+Temp/
+obj/
+*.csproj
+*.sln
