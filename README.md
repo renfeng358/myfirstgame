@@ -1,2 +1,2 @@
 # myfirstgame
-first game
+myfirstgame
