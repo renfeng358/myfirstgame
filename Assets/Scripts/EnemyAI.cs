@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Platformer.Mechanics
 {
-    [RequireComponent(typeof(AnimationController), typeof(Collider2D))]
+    [RequireComponent(typeof(AnimationController), typeof(Collider2D), typeof(Health))]
     public class EnemyAI : MonoBehaviour
     {
         public enum AIState
@@ -22,15 +22,19 @@ namespace Platformer.Mechanics
         public float attackRange = 1.5f;
         public float attackCooldown = 1f;
 
+        // Public reference to the loader, set on spawn
+        public LevelLoader loader;
+
         // Private state
         private Transform playerTransform;
         private AnimationController control;
         private float lastAttackTime;
+        private Health health;
 
         void Awake()
         {
             control = GetComponent<AnimationController>();
-            // Find the player by tag. This is not the most efficient way, but it's simple.
+            health = GetComponent<Health>();
             var playerObject = GameObject.FindGameObjectWithTag("Player");
             if (playerObject != null)
             {
@@ -40,7 +44,17 @@ namespace Platformer.Mechanics
 
         void Update()
         {
-            // If we don't have a player, we can't do anything smart.
+            if (health != null && !health.IsAlive)
+            {
+                // Report death and disable self
+                if (loader != null)
+                {
+                    loader.EnemyDied(gameObject);
+                }
+                this.enabled = false;
+                return;
+            }
+
             if (playerTransform == null) return;
 
             switch (currentState)
@@ -67,7 +81,6 @@ namespace Platformer.Mechanics
             }
             else
             {
-                // If there's no path, just stand still.
                 control.move.x = 0;
             }
         }
@@ -77,7 +90,6 @@ namespace Platformer.Mechanics
             float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
             if (distanceToPlayer < detectionRange)
             {
-                // A simple line-of-sight check.
                 RaycastHit2D hit = Physics2D.Raycast(transform.position, (playerTransform.position - transform.position).normalized, detectionRange);
                 if (hit.collider != null && hit.collider.transform == playerTransform)
                 {
@@ -91,41 +103,33 @@ namespace Platformer.Mechanics
             float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
             if (distanceToPlayer > detectionRange)
             {
-                // Player is out of range, go back to patrolling.
                 currentState = AIState.Patrolling;
                 return;
             }
 
             if (distanceToPlayer < attackRange)
             {
-                // Player is in attack range.
                 currentState = AIState.Attacking;
                 return;
             }
 
-            // Move towards the player.
             float direction = Mathf.Sign(playerTransform.position.x - transform.position.x);
             control.move.x = direction;
         }
 
         void Attack()
         {
-            // Stop moving to attack.
             control.move.x = 0;
 
             float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
             if (distanceToPlayer > attackRange)
             {
-                // Player moved out of attack range, chase them.
                 currentState = AIState.Chasing;
                 return;
             }
 
-            // Check if we can attack (cooldown).
             if (Time.time > lastAttackTime + attackCooldown)
             {
-                // Perform the attack.
-                // For now, a simple damage call. In a real game, this would trigger an animation.
                 var playerHealth = playerTransform.GetComponent<Health>();
                 if (playerHealth != null)
                 {
