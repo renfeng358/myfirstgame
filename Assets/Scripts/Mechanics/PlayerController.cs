@@ -27,22 +27,6 @@ namespace Platformer.Mechanics
         /// </summary>
         public float jumpTakeOffSpeed = 7;
 
-        /// <summary>
-        /// The speed of the player when dashing.
-        /// </summary>
-        public float dashSpeed = 20f;
-        /// <summary>
-        /// The duration of the dash in seconds.
-        /// </summary>
-        public float dashDuration = 0.2f;
-        /// <summary>
-        /// The cooldown time for the dash in seconds.
-        /// </summary>
-        public float dashCooldown = 1f;
-
-        private bool isDashing = false;
-        private bool canDash = true;
-
         public JumpState jumpState = JumpState.Grounded;
         private bool stopJump;
         /*internal new*/ public Collider2D collider2d;
@@ -78,11 +62,6 @@ namespace Platformer.Mechanics
                 {
                     stopJump = true;
                     Schedule<PlayerStopJump>().player = this;
-                }
-
-                if (Input.GetKeyDown(KeyCode.J) && canDash && !isDashing)
-                {
-                    StartCoroutine(Dash());
                 }
             }
             else
@@ -125,11 +104,6 @@ namespace Platformer.Mechanics
 
         protected override void ComputeVelocity()
         {
-            if (isDashing)
-            {
-                return;
-            }
-
             if (jump && IsGrounded)
             {
                 velocity.y = jumpTakeOffSpeed * model.jumpModifier;
@@ -153,29 +127,6 @@ namespace Platformer.Mechanics
             animator.SetFloat("velocityX", Mathf.Abs(velocity.x) / maxSpeed);
 
             targetVelocity = move * maxSpeed;
-        }
-
-        private IEnumerator Dash()
-        {
-            canDash = false;
-            isDashing = true;
-
-            float originalGravity = gravityModifier;
-            gravityModifier = 0f;
-            velocity.y = 0f;
-
-            velocity.x = (spriteRenderer.flipX ? -1 : 1) * dashSpeed;
-            animator.SetFloat("velocityX", dashSpeed / maxSpeed);
-
-            yield return new WaitForSeconds(dashDuration);
-
-            gravityModifier = originalGravity;
-            isDashing = false;
-            velocity.x = 0;
-            animator.SetFloat("velocityX", 0);
-
-            yield return new WaitForSeconds(dashCooldown);
-            canDash = true;
         }
 
         public enum JumpState
